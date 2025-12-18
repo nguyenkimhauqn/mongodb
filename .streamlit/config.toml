@@ -1,0 +1,9 @@
+[client]
+showSidebarNavigation = false
+
+[server]
+enableXsrfProtection = false
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
