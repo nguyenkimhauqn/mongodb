@@ -86,96 +86,147 @@ python test_budget_requirements.py
 
 ## Yêu cầu hệ thống
 
-- Python 3.11 trở lên
-- MongoDB Atlas account (hoặc MongoDB local)
-- pip (Python package manager)
+- **Python 3.11** trở lên
+- **MongoDB Atlas** account (hoặc MongoDB local)
+- **pip** hoặc **uv** (Python package manager)
 
 ## Hướng dẫn cài đặt
 
-### 1. Clone hoặc tải dự án về máy
+### Bước 1: Clone repository
 
 ```bash
-git clone <repository-url>
-cd mongoDb
+git clone https://github.com/nguyenkimhauqn/mongodb.git
+cd mongodb
 ```
 
-### 2. Cài đặt Python
+### Bước 2: Kiểm tra Python version
 
-Đảm bảo bạn đã cài đặt Python 3.11 trở lên. Kiểm tra phiên bản:
+Đảm bảo bạn đã cài đặt Python 3.11 trở lên:
 
 ```bash
 python --version
+# hoặc
+python3 --version
 ```
 
-### 3. Cài đặt các thư viện cần thiết
+Nếu chưa có Python 3.11+, tải về tại [python.org](https://www.python.org/downloads/)
 
-Chạy lệnh sau để cài đặt tất cả dependencies:
+### Bước 3: Cài đặt dependencies
+
+**Cách 1: Sử dụng uv (khuyến nghị - nhanh hơn)**
 
 ```bash
-python -m pip install streamlit pymongo python-dotenv
+# Cài đặt uv (nếu chưa có)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Cài đặt dependencies từ pyproject.toml
+uv pip install -e .
 ```
 
-Hoặc nếu có file `requirements.txt`:
+**Cách 2: Sử dụng pip (truyền thống)**
 
 ```bash
-python -m pip install -r requirements.txt
+# Cài đặt các thư viện cần thiết
+pip install streamlit pymongo python-dotenv
+
+# hoặc nếu dùng pip3
+pip3 install streamlit pymongo python-dotenv
 ```
 
-### 4. Cấu hình MongoDB
+**Các thư viện sẽ được cài đặt:**
+- `streamlit>=1.30.0` - Framework web
+- `pymongo>=4.10.0` - MongoDB driver
+- `python-dotenv>=1.0.0` - Quản lý biến môi trường
 
-#### Tạo file `.env` trong thư mục gốc của dự án:
+### Bước 4: Cấu hình MongoDB
+
+#### 4.1. Tạo file `.env`
 
 ```bash
-# Trên Windows
+# Trên Windows (PowerShell)
+New-Item -Path .env -ItemType File
+
+# Trên Windows (CMD)
 type nul > .env
 
 # Trên Linux/Mac
 touch .env
 ```
 
-#### Thêm cấu hình MongoDB vào file `.env`:
+#### 4.2. Thêm MongoDB connection string vào `.env`
+
+Mở file `.env` và thêm dòng sau:
 
 ```env
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=Cluster0
 ```
 
-**Lưu ý:** 
-- Thay `<username>` bằng tên người dùng MongoDB của bạn
-- Thay `<password>` bằng mật khẩu MongoDB của bạn
-- Thay `<cluster>` bằng địa chỉ cluster của bạn
+**Thay thế:**
+- `<username>` → Tên người dùng MongoDB của bạn
+- `<password>` → Mật khẩu MongoDB của bạn  
+- `<cluster>` → Địa chỉ cluster của bạn
 
 **Ví dụ:**
 ```env
-MONGO_URI=mongodb+srv://Hoanh:MyPass123@cluster0.nx6irmd.mongodb.net/?appName=Cluster0
+MONGO_URI=mongodb+srv://myuser:mypassword123@cluster0.abc123.mongodb.net/?appName=Cluster0
 ```
 
-### 5. Thiết lập MongoDB Atlas (nếu chưa có)
+**Lưu ý:** Nếu dùng MongoDB local:
+```env
+MONGO_URI=mongodb://localhost:27017/
+```
 
-1. Truy cập [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Tạo tài khoản miễn phí
-3. Tạo một Cluster mới
-4. Tạo Database User:
-   - Vào Database Access → Add New Database User
-   - Chọn Password authentication
-   - Tạo username và password
-5. Thêm IP Address vào whitelist:
-   - Vào Network Access → Add IP Address
-   - Chọn "Allow Access from Anywhere" (0.0.0.0/0) để test
-6. Lấy Connection String:
-   - Vào Database → Connect → Connect your application
-   - Copy connection string và thay thế vào file `.env`
+#### 4.3. Thiết lập MongoDB Atlas (nếu chưa có)
+
+1. Truy cập [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) và đăng ký tài khoản miễn phí
+2. Tạo một **Cluster mới** (chọn free tier M0)
+3. Tạo **Database User**:
+   - Vào **Database Access** → **Add New Database User**
+   - Chọn **Password authentication**
+   - Tạo username và password (lưu lại để dùng trong `.env`)
+4. Thêm **IP Address** vào whitelist:
+   - Vào **Network Access** → **Add IP Address**
+   - Chọn **"Allow Access from Anywhere"** (0.0.0.0/0) để test
+   - Hoặc thêm IP cụ thể của bạn để bảo mật hơn
+5. Lấy **Connection String**:
+   - Vào **Database** → **Connect** → **Connect your application**
+   - Copy connection string và paste vào file `.env`
+   - Thay `<password>` bằng password bạn đã tạo ở bước 3
+
+### Bước 5: Thiết lập indexes (tùy chọn nhưng khuyến nghị)
+
+Chạy script để tạo indexes cho database:
+
+```bash
+python setup_indexes.py
+```
 
 ## Chạy ứng dụng
 
-Sau khi hoàn tất các bước trên, chạy lệnh sau để khởi động ứng dụng:
+### Khởi động ứng dụng
+
+```bash
+streamlit run app.py
+```
+
+Hoặc:
 
 ```bash
 python -m streamlit run app.py
 ```
 
-Ứng dụng sẽ tự động mở trong trình duyệt tại địa chỉ:
-- Local URL: http://localhost:8501
-- Network URL: http://<your-ip>:8501
+### Truy cập ứng dụng
+
+Sau khi chạy lệnh trên, ứng dụng sẽ tự động mở trong trình duyệt tại:
+
+- **Local URL:** http://localhost:8501
+- **Network URL:** http://<your-ip>:8501
+
+Nếu không tự động mở, copy URL từ terminal và paste vào trình duyệt.
+
+### Dừng ứng dụng
+
+Nhấn `Ctrl + C` trong terminal để dừng ứng dụng.
 
 ## Cấu trúc dự án
 
@@ -204,20 +255,55 @@ mongoDb/
 
 ## Xử lý lỗi thường gặp
 
-### Lỗi: "No module named streamlit"
+### ❌ Lỗi: "No module named 'streamlit'"
+**Nguyên nhân:** Chưa cài đặt dependencies
+
+**Giải pháp:**
 ```bash
-python -m pip install streamlit
+pip install streamlit pymongo python-dotenv
 ```
 
-### Lỗi: "bad auth: authentication failed"
-- Kiểm tra lại username và password trong file `.env`
-- Đảm bảo IP của bạn đã được thêm vào whitelist trên MongoDB Atlas
-- Kiểm tra connection string có đúng định dạng không
+### ❌ Lỗi: "bad auth: authentication failed"
+**Nguyên nhân:** Thông tin đăng nhập MongoDB sai
 
-### Lỗi: "No module named dotenv"
+**Giải pháp:**
+1. Kiểm tra lại `username` và `password` trong file `.env`
+2. Đảm bảo IP của bạn đã được thêm vào **Network Access** trên MongoDB Atlas
+3. Kiểm tra connection string có đúng định dạng: `mongodb+srv://username:password@cluster...`
+4. Thử tạo lại Database User trên MongoDB Atlas
+
+### ❌ Lỗi: "No module named 'dotenv'"
+**Nguyên nhân:** Chưa cài đặt python-dotenv
+
+**Giải pháp:**
 ```bash
-python -m pip install python-dotenv
+pip install python-dotenv
 ```
+
+### ❌ Lỗi: "Connection refused" hoặc "Server selection timed out"
+**Nguyên nhân:** Không kết nối được MongoDB
+
+**Giải pháp:**
+1. Kiểm tra internet connection
+2. Kiểm tra MongoDB Atlas cluster đang chạy
+3. Kiểm tra IP whitelist trên MongoDB Atlas
+4. Thử connection string khác (nếu có)
+
+### ❌ Lỗi: "Port 8501 is already in use"
+**Nguyên nhân:** Port 8501 đang được sử dụng bởi ứng dụng khác
+
+**Giải pháp:**
+```bash
+# Chạy trên port khác
+streamlit run app.py --server.port 8502
+```
+
+### ❌ Lỗi: "FileNotFoundError: .env"
+**Nguyên nhân:** Chưa tạo file `.env`
+
+**Giải pháp:**
+1. Tạo file `.env` trong thư mục gốc của dự án
+2. Thêm dòng `MONGO_URI=...` vào file
 
 ## Ghi chú bảo mật
 
