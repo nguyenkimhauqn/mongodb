@@ -1,11 +1,14 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
+try:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    sns.set(style="whitegrid")
+    plt.rcParams['figure.figsize'] = (10, 6)
+except ImportError:
+    # matplotlib/seaborn not available, but plotly will still work
+    pass
+
 import plotly.express as px
 import plotly.graph_objects as go
-
-
-sns.set(style="whitegrid")
-plt.rcParams['figure.figsize'] = (10, 6)
 
 class FinanceVisualizer:
     """Class for visualizing financial data using various charts"""
