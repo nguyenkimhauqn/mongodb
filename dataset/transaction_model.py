@@ -86,6 +86,40 @@ class TransactionModel:
             "$and": conditions
         }
     
+    def _validate_category(self, category: str, transaction_type: str) -> bool:
+        """
+        Validate that category exists and matches the transaction type.
+        
+        Args:
+            category: Category name
+            transaction_type: 'Expense' or 'Income'
+        
+        Returns:
+            True if valid, False otherwise
+        
+        Raises:
+            ValueError: If category doesn't exist or type doesn't match
+        """
+        if not self.user_id:
+            raise ValueError("User ID must be set before validating category")
+        
+        # Get category collection
+        category_collection = self.db_manager.get_collection(config.COLLECTIONS['category'])
+        
+        # Check if category exists and type matches
+        existing_category = category_collection.find_one({
+            'user_id': self.user_id,
+            'name': category,
+            'type': transaction_type
+        })
+        
+        if not existing_category:
+            raise ValueError(
+                f"Category '{category}' không tồn tại hoặc không khớp với transaction type '{transaction_type}'"
+            )
+        
+        return True
+    
     def add_transaction(
         self,
         transaction_type: str,
@@ -96,6 +130,7 @@ class TransactionModel:
     ) -> Optional[str]:
         """
         Add a new transaction with automatic last_modified timestamp.
+        ✅ VALIDATION: Category phải tồn tại và type phải khớp với transaction_type
         
         Args:
             transaction_type: 'Expense' or 'Income'
@@ -106,7 +141,13 @@ class TransactionModel:
         
         Returns:
             Inserted document ID as string, or None if failed
+        
+        Raises:
+            ValueError: If category validation fails
         """
+        # ✅ VALIDATION: Category phải tồn tại và type phải khớp
+        self._validate_category(category, transaction_type)
+        
         if not isinstance(transaction_date, datetime):
             transaction_date = handler_datetime(transaction_date)
 
@@ -135,15 +176,33 @@ class TransactionModel:
     ) -> bool:
         """
         Update a transaction and set last_modified timestamp.
+        ✅ VALIDATION: Nếu update category hoặc type, validate category tồn tại và khớp type
         
         Args:
             transaction_id: Transaction ID
-            **kwargs: Fields to update
+            **kwargs: Fields to update (category, type, amount, date, description, etc.)
         
         Returns:
             True if updated successfully, False otherwise
+        
+        Raises:
+            ValueError: If category validation fails
         """
         try:
+            # ✅ VALIDATION: Nếu update category hoặc type, validate
+            if 'category' in kwargs or 'type' in kwargs:
+                # Get current transaction to determine transaction_type
+                current_trans = self.get_transaction_by_id(transaction_id)
+                if not current_trans:
+                    raise ValueError(f"Transaction {transaction_id} not found")
+                
+                # Use new type if provided, otherwise use current type
+                transaction_type = kwargs.get('type', current_trans.get('type'))
+                category = kwargs.get('category', current_trans.get('category'))
+                
+                # Validate category exists and matches transaction type
+                self._validate_category(category, transaction_type)
+            
             # Add last_modified timestamp
             kwargs['last_modified'] = datetime.now()
             # Build filter and scope by user if available
@@ -151,6 +210,9 @@ class TransactionModel:
                        'user_id': self.user_id} # added user_id constraint
             result = self.collection.update_one(filter_, {'$set': kwargs})
             return result.modified_count > 0
+        except ValueError:
+            # Re-raise ValueError (validation errors)
+            raise
         except Exception as e:
             print(f"Error updating transaction: {e}")
             return False

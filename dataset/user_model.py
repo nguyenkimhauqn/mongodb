@@ -76,28 +76,33 @@ class UserModel:
             
             counts = {}
             
-            # Delete transactions
+            # Delete transactions (delete_many - NO LOOP)
             trans_collection = self.db_manager.get_collection(config.COLLECTIONS['transaction'])
             trans_result = trans_collection.delete_many({"user_id": user_oid})
             counts['transactions'] = trans_result.deleted_count
             
-            # Delete budgets
+            # Delete budgets (delete_many - NO LOOP)
             budget_collection = self.db_manager.get_collection(config.COLLECTIONS['budget'])
             budget_result = budget_collection.delete_many({"user_id": user_oid})
             counts['budgets'] = budget_result.deleted_count
             
-            # Delete categories
+            # Delete custom categories (delete_many - NO LOOP)
+            # NOTE: Only delete categories created by user, keep system defaults
             category_collection = self.db_manager.get_collection(config.COLLECTIONS['category'])
             category_result = category_collection.delete_many({"user_id": user_oid})
             counts['categories'] = category_result.deleted_count
             
-            # Delete user
+            # Delete user (delete_one)
             user_result = self.collection.delete_one({"_id": user_oid})
-            counts['user'] = user_result.deleted_count
+            counts['users'] = user_result.deleted_count
+            
+            # Format summary message
+            message = f"Deleted: {counts['users']} user, {counts['transactions']} transactions, {counts['budgets']} budgets, {counts['categories']} categories"
             
             return {
                 "success": True,
                 "counts": counts,
+                "message": message,
                 "total": sum(counts.values())
             }
         except Exception as e:

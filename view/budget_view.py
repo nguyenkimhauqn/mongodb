@@ -191,13 +191,55 @@ def _render_budget_card(budget_info: dict, budget_model: BudgetModel):
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Delete button
-    if st.button(f"🗑️ {t('delete')}", key=f"del_budget_{budget_id}"):
-        if budget_model.delete_budget(budget_id):
-            st.success(f"✅ {t('budget_deleted')}")
+    # Edit and Delete buttons
+    col_edit, col_delete = st.columns(2)
+    
+    with col_edit:
+        if st.button(f"✏️ Sửa", key=f"edit_budget_{budget_id}", use_container_width=True):
+            st.session_state[f'editing_budget_{budget_id}'] = True
             st.rerun()
-        else:
-            st.error(f"❌ {t('error')}")
+    
+    with col_delete:
+        if st.button(f"🗑️ {t('delete')}", key=f"del_budget_{budget_id}", use_container_width=True, type="secondary"):
+            if budget_model.delete_budget(budget_id):
+                st.success(f"✅ {t('budget_deleted')}")
+                st.rerun()
+            else:
+                st.error(f"❌ {t('error')}")
+    
+    # Edit form
+    if st.session_state.get(f'editing_budget_{budget_id}', False):
+        with st.form(key=f"edit_form_{budget_id}"):
+            st.markdown("### ✏️ Chỉnh Sửa Ngân Sách")
+            
+            new_amount = st.number_input(
+                "Ngân sách mới",
+                min_value=0.0,
+                value=float(budget_amount),
+                step=10.0,
+                format="%.2f"
+            )
+            
+            col_save, col_cancel = st.columns(2)
+            
+            with col_save:
+                save_btn = st.form_submit_button("💾 Lưu", use_container_width=True, type="primary")
+            
+            with col_cancel:
+                cancel_btn = st.form_submit_button("❌ Hủy", use_container_width=True)
+            
+            if save_btn and new_amount > 0:
+                result = budget_model.update_budget(budget_id, amount=new_amount)
+                if result:
+                    st.success(f"✅ Đã cập nhật ngân sách thành ${new_amount:,.2f}")
+                    del st.session_state[f'editing_budget_{budget_id}']
+                    st.rerun()
+                else:
+                    st.error("❌ Lỗi khi cập nhật")
+            
+            if cancel_btn:
+                del st.session_state[f'editing_budget_{budget_id}']
+                st.rerun()
 
 
 def _render_budget_list(budget_model: BudgetModel, transaction_model: TransactionModel):

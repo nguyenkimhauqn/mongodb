@@ -40,6 +40,17 @@ class BudgetModel:
         if not self.user_id:
             raise ValueError("User ID must be set before creating budget")
 
+        # ✅ VALIDATION: Category phải tồn tại và phải là Expense
+        category_collection = self.db_manager.get_collection(config.COLLECTIONS['category'])
+        existing_category = category_collection.find_one({
+            'user_id': self.user_id,
+            'name': category,
+            'type': 'Expense'
+        })
+        
+        if not existing_category:
+            raise ValueError(f"Category '{category}' không tồn tại hoặc không phải là Expense category")
+
         # Check if budget already exists for this user-category-month (UNIQUE CONSTRAINT)
         existing = self.collection.find_one({
             'user_id': self.user_id,
@@ -182,21 +193,75 @@ class BudgetModel:
         }
         cursor = self.collection.find(query).sort('created_at', -1)
         return list(cursor)
-
-    def check_budget_status(self, category: str, month: int, year: int, spent_amount: float) -> dict:
+    
+    def calculate_spent_amount(self, category: str, month: int, year: int) -> float:
         """
-        Check budget status for a category in a specific month
+        ✅ Tính tổng tiền đã chi cho category trong tháng bằng MongoDB aggregation
+        KHÔNG dùng Python loop để đảm bảo hiệu năng
         
         Args:
             category: Category name
             month: Month (1-12)
             year: Year
-            spent_amount: Amount already spent
+        
+        Returns:
+            Total spent amount
+        """
+        from datetime import date
+        
+        # Tạo date range cho tháng
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        # ✅ MongoDB Aggregation Pipeline
+        transaction_collection = self.db_manager.get_collection(config.COLLECTIONS['transaction'])
+        
+        pipeline = [
+            {
+                "$match": {
+                    "user_id": self.user_id,
+                    "category": category,
+                    "type": "Expense",
+                    "date": {
+                        "$gte": start_date,
+                        "$lt": end_date
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_spent": {"$sum": "$amount"}
+                }
+            }
+        ]
+        
+        result = list(transaction_collection.aggregate(pipeline))
+        
+        if result:
+            return float(result[0].get('total_spent', 0))
+        return 0.0
+
+    def check_budget_status(self, category: str, month: int, year: int) -> dict:
+        """
+        Check budget status for a category in a specific month
+        ✅ Tự động tính spent_amount bằng aggregation
+        
+        Args:
+            category: Category name
+            month: Month (1-12)
+            year: Year
         
         Returns:
             Dictionary with budget status information
         """
         budget = self.get_budget_by_category_month(category, month, year)
+        
+        # ✅ Tính spent bằng aggregation
+        spent_amount = self.calculate_spent_amount(category, month, year)
         
         if not budget:
             return {
@@ -264,27 +329,10 @@ class BudgetModel:
             budget_month = budget.get('month')
             budget_year = budget.get('year')
 
-            # Get actual spending for this category IN THIS MONTH
-            from datetime import date
-            start_date = date(budget_year, budget_month, 1)
-            # Get last day of month
-            if budget_month == 12:
-                end_date = date(budget_year + 1, 1, 1)
-            else:
-                end_date = date(budget_year, budget_month + 1, 1)
+            # ✅ Tính spent bằng MongoDB aggregation (KHÔNG dùng Python loop)
+            spent_amount = self.calculate_spent_amount(category, budget_month, budget_year)
             
-            transactions = transaction_model.get_transactions(
-                advanced_filters={
-                    'category': category, 
-                    'transaction_type': 'Expense',
-                    'start_date': start_date,
-                    'end_date': end_date
-                }
-            )
-
-            spent_amount = sum(t.get('amount', 0) for t in transactions)
-            
-            status = self.check_budget_status(category, budget_month, budget_year, spent_amount)
+            status = self.check_budget_status(category, budget_month, budget_year)
 
             summary.append({
                 'budget_id': str(budget['_id']),

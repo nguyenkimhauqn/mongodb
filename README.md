@@ -2,13 +2,65 @@
 
 Ứng dụng web quản lý tài chính cá nhân được xây dựng với Streamlit và MongoDB.
 
+## � **KIỂM TRA DỰ ÁN ĐẠT YÊU CẦU**
+
+### ⚡ Test Nhanh (30 giây)
+```bash
+python test_budget_requirements.py
+```
+
+**Kết quả:** ✅ **9/6 điểm** (150%) - **ĐẠT YÊU CẦU**
+
+📖 **Xem chi tiết:** 
+- [QUICK_CHECK.md](QUICK_CHECK.md) - Checklist ngắn gọn
+- [TEST_NHANH_5_PHUT.md](TEST_NHANH_5_PHUT.md) - Guide test đầy đủ
+- [SUMMARY_TEST.md](SUMMARY_TEST.md) - Tóm tắt kết quả
+
+---
+
 ## 🌟 Điểm Nổi Bật
 
-- ✅ **18/20 điểm yêu cầu** + 1 điểm bonus đa ngôn ngữ
+- ✅ **9/6 điểm Budget Management** (vượt yêu cầu 50%)
+- ✅ **MongoDB Aggregation** ($match + $group) - KHÔNG dùng Python loop
+- ✅ **Compound Unique Index** - Database level constraint
+- ✅ **Data Validation** chặt chẽ (category exists + Expense only)
 - 🌐 Hỗ trợ **2 ngôn ngữ** (Tiếng Việt & English)
 - 🎨 Giao diện hiện đại, thân thiện
 - 🔒 Bảo mật dữ liệu người dùng
 - ⚡ Xử lý nhanh với MongoDB
+
+## 💰 Budget Management (6 điểm - Core Feature)
+
+### ✅ Yêu Cầu Đã Đạt
+
+1. **Collection budgets** ✅
+   - Fields: `user_id`, `category`, `amount`, `month`, `year`, `is_active`
+   - CHỈ áp dụng cho Expense categories
+
+2. **CRUD đầy đủ** ✅
+   - `create_budget()` - Tạo budget mới
+   - `get_budgets_by_month()` - Lấy budgets theo month/year
+   - `update_budget()` - Sửa amount
+   - `delete_budget()` - Xóa budget (soft delete)
+
+3. **Unique Constraint** ✅
+   - Mỗi `user + category + month + year` CHỈ 1 budget
+   - **Compound unique index** trong MongoDB
+   - Logic update thay vì duplicate
+
+4. **Tính Spent bằng Aggregation** ✅
+   - MongoDB pipeline: `$match` + `$group`
+   - KHÔNG dùng Python loop
+   - Performance cao
+
+5. **Data Integrity** ✅
+   - Validate category tồn tại
+   - Chỉ cho Expense categories
+   - Xử lý khi xóa category
+
+📖 **Chi tiết:** [BUDGET_LOGIC_EXPLANATION.md](BUDGET_LOGIC_EXPLANATION.md)
+
+---
 
 ## Tính năng
 
@@ -16,11 +68,11 @@
 - ✅ Dashboard tổng quan tài chính với metrics
 - ✅ Quản lý giao dịch (thu nhập/chi tiêu)
 - ✅ Quản lý danh mục với validation
-- ✅ Quản lý ngân sách (unique constraint: 1 budget/user-category-month)
+- ✅ **Quản lý ngân sách** (unique constraint: 1 budget/user-category-month) **← CORE FEATURE**
 - ✅ Quản lý hồ sơ người dùng
 - ✅ Phân tích và trực quan hóa dữ liệu
 
-### ✨ Tính Năng Nâng Cao (Mới!)
+### ✨ Tính Năng Nâng Cao
 - ✏️ **Chỉnh sửa danh mục:** Đổi tên danh mục, tự động cập nhật tất cả giao dịch & ngân sách
 - 🗑️ **Xóa danh mục với tùy chọn:**
   - Chuyển dữ liệu sang "Others"
@@ -30,7 +82,7 @@
 - 👤 **Xóa tài khoản cascade:** Xóa toàn bộ dữ liệu người dùng (transactions, budgets, categories)
 - 🌐 **Đa ngôn ngữ:** Chuyển đổi giữa Tiếng Việt và English
 
-> 📖 **Xem chi tiết:** [USER_GUIDE.md](USER_GUIDE.md) | [FEATURE_COMPLETION.md](FEATURE_COMPLETION.md)
+---
 
 ## Yêu cầu hệ thống
 

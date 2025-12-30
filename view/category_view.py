@@ -60,11 +60,32 @@ def _render_category_list(category_model, category_type: str):
                 if st.session_state.get(f'editing_{item["_id"]}', False):
                     with st.form(key=f"edit_form_{item['_id']}"):
                         st.markdown(f"**{t('rename_category')}**")
+                        
+                        # New name input
                         new_name = st.text_input(
                             t('new_name'),
                             value=category_name,
                             key=f"new_name_{item['_id']}"
                         )
+                        
+                        # Change type option
+                        st.markdown("**Change Type (optional):**")
+                        change_type = st.checkbox(
+                            "Change category type (Expense ↔ Income)",
+                            key=f"change_type_{item['_id']}"
+                        )
+                        
+                        new_type = category_type
+                        if change_type:
+                            import config
+                            type_options = config.TRANSACTION_TYPES
+                            new_type = st.selectbox(
+                                "New Type:",
+                                options=type_options,
+                                index=type_options.index(category_type),
+                                key=f"new_type_{item['_id']}"
+                            )
+                            st.warning("⚠️ Type change will be blocked if category has transactions/budgets")
                         
                         col_save, col_cancel = st.columns(2)
                         with col_save:
@@ -73,17 +94,21 @@ def _render_category_list(category_model, category_type: str):
                             cancel_btn = st.form_submit_button(f"❌ {t('cancel')}", use_container_width=True)
                         
                         if save_btn and new_name:
-                            success, message = category_model.update_category(
-                                old_name=category_name,
-                                new_name=new_name,
-                                category_type=category_type
+                            success, message, counts = category_model.update_category(
+                                category_name,  # old_name
+                                new_name,       # new_name
+                                category_type,  # old_type
+                                new_type if change_type else None  # new_type
                             )
                             if success:
-                                st.success(f"✅ {t('category_updated')}")
+                                st.success(message)
+                                # Show update summary
+                                if counts and (counts.get('transactions', 0) > 0 or counts.get('budgets', 0) > 0):
+                                    st.info(f"📊 Updated:\\n• {counts.get('transactions', 0)} transactions\\n• {counts.get('budgets', 0)} budgets")
                                 del st.session_state[f'editing_{item["_id"]}']
                                 st.rerun()
                             else:
-                                st.error(f"❌ {message}")
+                                st.error(message)
                         
                         if cancel_btn:
                             del st.session_state[f'editing_{item["_id"]}']
@@ -91,17 +116,32 @@ def _render_category_list(category_model, category_type: str):
                 
                 # Show delete confirmation if deleting
                 if st.session_state.get(f'deleting_{item["_id"]}', False):
-                    # Count related data
+                    # Count related data using MongoDB count_documents (NO LOOP)
                     from dataset.transaction_model import TransactionModel
                     from dataset.budget_model import BudgetModel
                     trans_model = TransactionModel()
                     budget_model = BudgetModel()
                     
-                    trans_count = len(trans_model.get_transactions_by_category(category_name))
-                    budget_count = len(budget_model.get_budgets_by_category(category_name))
+                    # Get user_id from category_model (already set in app.py)
+                    user_id = category_model.user_id
+                    trans_model.set_user_id(user_id)
+                    budget_model.set_user_id(user_id)
                     
-                    st.warning(f"⚠️ {t('related_data_found')}:")
-                    st.info(f"- {trans_count} {t('category_has_transactions')}\n- {budget_count} {t('category_has_budgets')}")
+                    # Count using MongoDB count_documents
+                    from bson.objectid import ObjectId
+                    trans_count = trans_model.collection.count_documents({
+                        "category": category_name,
+                        "user_id": ObjectId(user_id)
+                    })
+                    budget_count = budget_model.collection.count_documents({
+                        "category": category_name,
+                        "user_id": ObjectId(user_id),
+                        "is_active": True
+                    })
+                    
+                    # Display warning with affected count
+                    st.warning(f"⚠️ **{trans_count} transactions will be affected**")
+                    st.info(f"📊 Related data:\n- {trans_count} transactions\n- {budget_count} budgets")
                     
                     with st.form(key=f"delete_form_{item['_id']}"):
                         st.markdown(f"**{t('delete_category_options')}**")
@@ -131,16 +171,21 @@ def _render_category_list(category_model, category_type: str):
                                 )
                                 
                                 if success:
-                                    st.success(f"✅ {message}")
-                                    if counts:
-                                        st.info(f"📊 {t('deletion_summary')}:\n" + 
-                                               f"- {counts.get('transactions_moved', 0)} {t('transactions_moved')}\n" +
-                                               f"- {counts.get('transactions_deleted', 0)} {t('transactions_deleted')}\n" +
-                                               f"- {counts.get('budgets_deleted', 0)} {t('budgets_deleted')}")
+                                    st.success(message)
+                                    # Display detailed summary
+                                    if counts and (counts.get('transactions', 0) > 0 or counts.get('budgets', 0) > 0):
+                                        summary_lines = []
+                                        if action == 'move_to_others':
+                                            summary_lines.append(f"• Moved {counts.get('transactions_moved', 0)} transactions to 'Others'")
+                                            summary_lines.append(f"• Moved {counts.get('budgets_moved', 0)} budgets to 'Others'")
+                                        elif action == 'delete_all':
+                                            summary_lines.append(f"• Deleted {counts.get('transactions_deleted', 0)} transactions")
+                                            summary_lines.append(f"• Deleted {counts.get('budgets_deleted', 0)} budgets")
+                                        st.info("📊 Summary:\n" + "\n".join(summary_lines))
                                     del st.session_state[f'deleting_{item["_id"]}']
                                     st.rerun()
                                 else:
-                                    st.error(f"❌ {message}")
+                                    st.error(message)
                         
                         if cancel_btn:
                             del st.session_state[f'deleting_{item["_id"]}']

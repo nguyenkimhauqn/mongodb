@@ -94,20 +94,26 @@ def _render_add_transaction(transaction_model, category_model):
                 if amount <= 0:
                     st.error(f"❌ {t('amount')} > 0")
                 else:
-                    result = transaction_model.add_transaction(
-                        transaction_type=transaction_type,
-                        category=category,
-                        amount=amount,
-                        transaction_date=transaction_date,
-                        description=description
-                    )
-                    if result:
-                        st.success(f"✅ {t('transaction_added')}")
-                        st.balloons()
-                        time.sleep(1.5)
-                        st.rerun()
-                    else:
-                        st.error(f"❌ {t('error')}")
+                    try:
+                        result = transaction_model.add_transaction(
+                            transaction_type=transaction_type,
+                            category=category,
+                            amount=amount,
+                            transaction_date=transaction_date,
+                            description=description
+                        )
+                        if result:
+                            st.success(f"✅ {t('transaction_added')}")
+                            st.balloons()
+                            time.sleep(1.5)
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {t('error')}")
+                    except ValueError as e:
+                        # ✅ Handle validation errors (category doesn't exist or type mismatch)
+                        st.error(f"❌ {str(e)}")
+                    except Exception as e:
+                        st.error(f"❌ {t('error')}: {str(e)}")
 
 
 def _render_transaction_list(transaction_model):
