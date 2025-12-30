@@ -21,4 +21,4 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["dataset*", "view*"]
+include = ["dataset*", "view*", "analytics*", "locales*"]
