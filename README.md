@@ -341,6 +341,121 @@ ENV/
 Thumbs.db
 ```
 
+## 🚀 Deploy lên Streamlit Cloud
+
+Ứng dụng này có thể deploy lên **Streamlit Cloud** miễn phí. Thực hiện các bước sau:
+
+### Bước 1: Chuẩn bị Repository
+
+1. **Đảm bảo code đã được push lên GitHub:**
+   ```bash
+   git add .
+   git commit -m "Prepare for Streamlit Cloud deployment"
+   git push origin main
+   ```
+
+2. **Kiểm tra các file cần thiết:**
+   - ✅ `requirements.txt` - Đã có sẵn
+   - ✅ `.streamlit/config.toml` - Đã có sẵn
+   - ✅ `app.py` - File chính của ứng dụng
+
+### Bước 2: Đăng ký Streamlit Cloud
+
+1. Truy cập [share.streamlit.io](https://share.streamlit.io)
+2. Đăng nhập bằng **GitHub account** của bạn
+3. Click **"New app"** để tạo ứng dụng mới
+
+### Bước 3: Cấu hình App trên Streamlit Cloud
+
+1. **Chọn repository:**
+   - Chọn repository chứa code của bạn
+   - Chọn branch (thường là `main` hoặc `master`)
+   - Chọn file chính: `app.py`
+
+2. **Cấu hình Secrets (QUAN TRỌNG):**
+   
+   Click vào **"Advanced settings"** → **"Secrets"** và thêm:
+   
+   ```toml
+   MONGO_URI = "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?appName=Cluster0"
+   ```
+   
+   **Lưu ý:**
+   - Thay `<username>`, `<password>`, và `<cluster>` bằng thông tin MongoDB Atlas của bạn
+   - **KHÔNG** để khoảng trắng xung quanh dấu `=`
+   - Đảm bảo MongoDB Atlas cho phép kết nối từ Streamlit Cloud (xem Bước 4)
+
+3. **Click "Deploy"** và chờ ứng dụng deploy
+
+### Bước 4: Cấu hình MongoDB Atlas
+
+**QUAN TRỌNG:** Streamlit Cloud sử dụng IP động, bạn cần:
+
+1. **Cho phép truy cập từ mọi IP (để test):**
+   - Vào MongoDB Atlas → **Network Access**
+   - Click **"Add IP Address"**
+   - Chọn **"Allow Access from Anywhere"** (0.0.0.0/0)
+   - Click **"Confirm"**
+
+   ⚠️ **Lưu ý bảo mật:** Nếu muốn bảo mật hơn, bạn có thể thêm IP cụ thể của Streamlit Cloud, nhưng điều này phức tạp hơn.
+
+2. **Kiểm tra Database User:**
+   - Đảm bảo Database User có quyền đọc/ghi database
+   - Username và password phải khớp với trong secrets
+
+### Bước 5: Chạy Setup Indexes (Tùy chọn)
+
+Sau khi deploy, bạn có thể chạy script setup indexes:
+
+1. Truy cập ứng dụng đã deploy
+2. Mở terminal trên Streamlit Cloud (nếu có) hoặc chạy local:
+   ```bash
+   python setup_indexes.py
+   ```
+
+### URL Ứng dụng
+
+Sau khi deploy thành công, bạn sẽ có URL dạng:
+```
+https://<your-app-name>.streamlit.app
+```
+
+### Xử lý lỗi khi Deploy
+
+#### ❌ Lỗi: "ModuleNotFoundError"
+**Nguyên nhân:** Thiếu dependencies trong `requirements.txt`
+
+**Giải pháp:**
+- Kiểm tra `requirements.txt` có đầy đủ packages
+- Đảm bảo version tương thích
+
+#### ❌ Lỗi: "MongoDB connection failed"
+**Nguyên nhân:** 
+- Secrets chưa được cấu hình đúng
+- MongoDB Atlas chưa cho phép IP của Streamlit Cloud
+
+**Giải pháp:**
+1. Kiểm tra lại secrets trong Streamlit Cloud
+2. Kiểm tra Network Access trên MongoDB Atlas
+3. Kiểm tra connection string có đúng format
+
+#### ❌ Lỗi: "Authentication failed"
+**Nguyên nhân:** Username/password MongoDB sai
+
+**Giải pháp:**
+- Kiểm tra lại credentials trong secrets
+- Thử tạo Database User mới trên MongoDB Atlas
+
+### Lưu ý Bảo mật
+
+⚠️ **QUAN TRỌNG:**
+- **KHÔNG** commit file `.env` lên GitHub
+- Sử dụng **Secrets** của Streamlit Cloud để lưu `MONGO_URI`
+- Sử dụng password mạnh cho MongoDB
+- Xem xét giới hạn IP whitelist trên MongoDB Atlas (nếu cần bảo mật cao)
+
+---
+
 ## Hỗ trợ
 
 Nếu gặp vấn đề khi cài đặt hoặc sử dụng, vui lòng liên hệ hoặc tạo issue.
