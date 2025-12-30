@@ -9,3 +9,5 @@ font = "sans serif"
 headless = true
 enableCORS = false
 enableXsrfProtection = true
+# Use polling instead of inotify to avoid "inotify instance limit reached" errors on Streamlit Cloud
+fileWatcherType = "poll"
