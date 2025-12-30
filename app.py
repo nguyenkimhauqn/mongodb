@@ -227,7 +227,7 @@ def login_screen():
         """, unsafe_allow_html=True)
 
 
-if not st.user.is_logged_in:
+if not st.user:
     login_screen()
 else:
     # Get mongo_user
