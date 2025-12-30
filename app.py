@@ -212,8 +212,23 @@ def login_screen():
             </style>
         """, unsafe_allow_html=True)
         
+        # Debug info
+        with st.expander("🔍 Debug Info", expanded=False):
+            st.write("st.user status:", st.user)
+            if hasattr(st, 'secrets') and 'auth' in st.secrets:
+                st.write("✅ Auth config found in secrets")
+                st.write("Client ID:", st.secrets['auth'].get('client_id', 'Not found')[:50] + "...")
+            else:
+                st.error("❌ Auth config NOT found in secrets.toml")
+        
         if st.button(f"🚀 {t('login_button')}", key="login_btn"):
-            st.login()
+            try:
+                st.login()
+            except Exception as e:
+                st.error(f"Login error: {e}")
+                st.error(f"Error type: {type(e)}")
+                import traceback
+                st.code(traceback.format_exc())
         
         st.markdown("</div>", unsafe_allow_html=True)
         
@@ -232,8 +247,26 @@ if not st.user:
 else:
     # Get mongo_user
     user_model: UserModel = models['user']
+    
+    # Convert st.user to dict first to access all attributes
     try:
-        mongo_user_id = user_model.login(st.user.email)
+        user = st.user.to_dict() if hasattr(st.user, 'to_dict') else dict(st.user)
+    except Exception as e:
+        st.error(f"Error converting user object: {e}")
+        st.error(f"st.user type: {type(st.user)}")
+        st.error(f"st.user attributes: {dir(st.user)}")
+        st.stop()
+    
+    # Get email from user dict
+    email = user.get('email') or user.get('emails', [{}])[0].get('value') or user.get('emailAddresses', [{}])[0].get('value')
+    
+    if not email:
+        st.error(f"❌ Cannot get email from user object. Available keys: {list(user.keys())}")
+        st.error(f"User data: {user}")
+        st.stop()
+    
+    try:
+        mongo_user_id = user_model.login(email)
     except Exception as e:
         st.error(f"Error during user login: {e}")
         st.stop()
@@ -245,8 +278,7 @@ else:
     models['budget'].set_user_id(mongo_user_id)
     models['transaction'].set_user_id(mongo_user_id)
 
-
-    user = st.user.to_dict() # convert google_user to dict
+    # Update user dict with mongo_user_id
     user.update({
         "id": mongo_user_id
     })
