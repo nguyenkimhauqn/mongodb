@@ -22,13 +22,13 @@ def add_sample_data(user_id):
     print("📋 Checking and creating categories...")
     
     # ✅ STEP 1: Ensure categories exist before adding transactions
-    existing_categories = category_model.get_categories()
+    existing_categories = category_model.get_total()
     existing_names = {cat['name']: cat['type'] for cat in existing_categories}
     
     # Create missing expense categories
     for cat_name in expense_categories:
         if cat_name not in existing_names:
-            category_model.add_category(cat_name, "Expense")
+            category_model.upsert_category(category_type="Expense", category_name=cat_name)
             print(f"  ✓ Created Expense category: {cat_name}")
         elif existing_names[cat_name] != "Expense":
             print(f"  ⚠️  Category '{cat_name}' exists but as {existing_names[cat_name]}")
@@ -36,7 +36,7 @@ def add_sample_data(user_id):
     # Create missing income categories
     for cat_name in income_categories:
         if cat_name not in existing_names:
-            category_model.add_category(cat_name, "Income")
+            category_model.upsert_category(category_type="Income", category_name=cat_name)
             print(f"  ✓ Created Income category: {cat_name}")
         elif existing_names[cat_name] != "Income":
             print(f"  ⚠️  Category '{cat_name}' exists but as {existing_names[cat_name]}")
