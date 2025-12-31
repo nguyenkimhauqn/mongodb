@@ -19,7 +19,29 @@ def add_sample_data(user_id):
         "Salary", "Freelance", "Investments", "Bonuses"
     ]
     
-    print("Adding sample transactions...")
+    print("📋 Checking and creating categories...")
+    
+    # ✅ STEP 1: Ensure categories exist before adding transactions
+    existing_categories = category_model.get_categories()
+    existing_names = {cat['name']: cat['type'] for cat in existing_categories}
+    
+    # Create missing expense categories
+    for cat_name in expense_categories:
+        if cat_name not in existing_names:
+            category_model.add_category(cat_name, "Expense")
+            print(f"  ✓ Created Expense category: {cat_name}")
+        elif existing_names[cat_name] != "Expense":
+            print(f"  ⚠️  Category '{cat_name}' exists but as {existing_names[cat_name]}")
+    
+    # Create missing income categories
+    for cat_name in income_categories:
+        if cat_name not in existing_names:
+            category_model.add_category(cat_name, "Income")
+            print(f"  ✓ Created Income category: {cat_name}")
+        elif existing_names[cat_name] != "Income":
+            print(f"  ⚠️  Category '{cat_name}' exists but as {existing_names[cat_name]}")
+    
+    print("\n💰 Adding sample transactions...")
     
     # Add 50 sample transactions over the last 3 months
     today = datetime.now()
@@ -61,17 +83,22 @@ def add_sample_data(user_id):
         
         description = random.choice(descriptions)
         
-        # Add transaction
-        result = transaction_model.add_transaction(
-            transaction_type=transaction_type,
-            category=category,
-            amount=amount,
-            transaction_date=transaction_date,
-            description=description
-        )
-        
-        if result:
-            print(f"✓ Added {transaction_type}: ${amount} - {category}")
+        # Add transaction with error handling
+        try:
+            result = transaction_model.add_transaction(
+                transaction_type=transaction_type,
+                category=category,
+                amount=amount,
+                transaction_date=transaction_date,
+                description=description
+            )
+            
+            if result:
+                print(f"  ✓ Added {transaction_type}: ${amount} - {category}")
+        except ValueError as e:
+            print(f"  ❌ Error: {e}")
+        except Exception as e:
+            print(f"  ❌ Unexpected error: {e}")
     
     print(f"\n✅ Successfully added 50 sample transactions!")
     
